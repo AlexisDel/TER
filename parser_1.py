@@ -21,10 +21,15 @@
 
 from ply.lex import lex
 from ply.yacc import yacc
-from utils import Espece
+from utils import Espece, Reaction, Inhibition
+
+from collections import defaultdict
+import time
 
 # HashMap
 especes = dict()
+reactions = []
+inhibitions = defaultdict(list)
 
 # --- Tokenizer
 
@@ -68,9 +73,10 @@ def t_NUMBER(t):
 
 def t_IDENT(t):
     r"\"(.*?)\" "
-    if t.value not in especes:
-        especes[t.value] = Espece(t.value)
-    t.value = especes.get(t.value)
+    name = t.value[1:-1]
+    if name not in especes:
+        especes[name] = Espece(name)
+    t.value = especes.get(name)
     return t
 
 
@@ -97,74 +103,71 @@ def p_listreac(p):
     """
     listreac : react
     """
-    p[0] = p[1]
 
 
 def p_listreac_list(p):
     """
     listreac : react listreac
     """
-    p[0] = ("listreac", p[1], p[2])
 
 
 def p_react(p):
     """
     react : IDENT COLON listm RARROW listm BAR listconc DASH NUMBER SEMI
     """
-    p[0] = ("react", p[1], p[3], p[5], p[7])
+    reactions.append(Reaction(p[1], p[3], p[5]))
 
 
 def p_inhibition(p):
     """
     react : IDENT COLON IDENT BAR NUMBER unite SEMI
     """
-    p[0] = ("inhibition", p[1], p[3], p[5])
+    inhibitions[p[3]].append(p[1])
 
 
 def p_listm(p):
     """
     listm : IDENT
     """
-    p[0] = p[1]
+    p[0] = [p[1]]
 
 
 def p_listm_list(p):
     """
     listm : IDENT PLUS listm
     """
-    p[0] = ("listm", p[1], p[3])
+    p[0] = p[3] + [p[1]]
 
 
 def p_listconc(p):
     """
     listconc : NUMBER unite
     """
-    p[0] = p[1]
+    p[0] = [p[1]]
 
 
 def p_listconc_list(p):
     """
     listconc : NUMBER unite COMMA listconc
     """
-    p[0] = ("listconc", p[1], p[4])
+    p[0] = p[4] + [p[1]]
 
 
 def p_unite_MM(p):
     """
     unite : MM
     """
-    p[0] = "mM"
 
 
 def p_unite_UM(p):
     """
     unite : UM
     """
-    p[0] = "uM"
 
 
 def p_error(p):
     print(f"Syntax error at {p.value!r}, line {p.lineno!r}:{p.lexpos}")
+    exit()
 
 
 # -------------------- TEST ---------------------
@@ -193,8 +196,7 @@ def test_yacc(data, verbose=False):
     # Parse an expression
     r = parser.parse(data)
 
-    if verbose:
-        print(r)
+    return r
 
 
 def display_especes():
@@ -203,7 +205,59 @@ def display_especes():
     print("Number of species :", len(especes))
 
 
+# _____________________ Functions __________________
+
+
+def buildNext():
+    for reac in reactions:
+        for produit in reac.produits:
+            for nextReac in reactions:
+                if produit in nextReac.substrats:
+                    reac.next.append(nextReac)
+
+
+def findPaths(start, end, depth):
+    paths = []
+    for reac in reactions:
+        if start in reac.substrats:
+            paths += exploreNext(reac, end, depth, path=[reac])
+    return paths
+
+
+def exploreNext(reac, end, depth, path=[], paths=[]):
+    reac.used = True
+
+    for molecule in reac.produits:
+        for enzyme in inhibitions.get(molecule, []):
+            enzyme.inhibited = True
+
+    if end in reac.produits:
+        paths.append(path)
+    else:
+        for n in reac.next:
+            if depth > 1 and not n.used and not n.enzyme.inhibited:
+                exploreNext(n, end, depth - 1, path + [n], paths)
+    reac.used = False
+    return paths
+
+
 # Main
 if __name__ == "__main__":
+
+    # build reactions list
     with open("brenda.ssa", "r") as file:
         test_yacc(file.read())
+
+    print(len(reactions))
+    print(len(inhibitions))
+
+    print("Build next")
+    s = time.time()
+    buildNext()
+    print("execution time :", time.time() - s)
+
+    print("Find path")
+    s = time.time()
+    paths = findPaths(especes.get("NAD+"), especes.get("Acetophenone"), 2)
+    print(len(set([item for items in paths for item in items])))
+    print("execution time :", time.time() - s)

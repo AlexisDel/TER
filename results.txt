@@ -1,0 +1,9 @@
+V0 : inf s
+    - 1 list (reac/inib)
+    - is instance
+
+V1 : 38s
+    - used boolean
+
+V2 : 1.3s
+    - 2 lists

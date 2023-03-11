@@ -3257,7 +3257,6 @@
 "dimethylpropiothetin dethiomethylase" : "diethylsulfoniopropionate" -> "thiolane" + "acrylate" | 5.7 mM - 21.9;	// 0-14
 "dimethylpropiothetin dethiomethylase" : "ethylmethylsulfoniopropionate" -> "ethylmethylsulfide" + "acrylate" | 10.7 mM - 11.5;	// 0-14
 "dimethylpropiothetin dethiomethylase" : "methylpropylsulfoniopropionate" -> "methylpropylsulfide" + "acrylate" | 8 mM - 10.9;	// 0-14
-"alliin lyase" :  -> "pyruvate" |  - 2.48;	// 4-11
 "alliin lyase" : "alliin" -> "allylsulfenic acid" + "pyruvate" | 4.22 mM - 20.67;	// 4-11
 "alliin lyase" : "propiin" -> "propylsulfanol" + "pyruvate" | 250 uM - 1.96;	// 4-11
 "alliin lyase" : "methiin" -> "methanesulfenic acid" + "pyruvate" | 13.9 mM - 15.1;	// 4-11
@@ -3498,7 +3497,6 @@
 "glucose-6-phosphate isomerase" : "Glucose 6-phosphate" -> "D-fructose6-phosphate" | 2.11 mM - 3500;	// 7-9
 "glucose-6-phosphate isomerase" : "L-talose" -> "L-tagatose" | 133 mM - 475.5;	// 6-8.5
 "arabinose-5-phosphate isomerase" : "Ribulose 5-phosphate" -> "D-arabinose5-phosphate" | 485 uM - 18.5;	// 0-14
-"L-rhamnose isomerase" :  -> "D-Psicose" |  - 0.05;	// 0-14
 "L-rhamnose isomerase" : "glucose" -> "Fructose" + "mannose" | 564 mM - 190;	// 0-14
 "L-rhamnose isomerase" : "xylose" -> "xylulose" + "lyxose" | 250 mM - 25.4;	// 0-14
 "L-rhamnose isomerase" : "ribose" -> "ribulose" + "D-Arabinose" | 38 mM - 31.4;	// 0-14
