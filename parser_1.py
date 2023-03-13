@@ -214,6 +214,7 @@ def buildNext():
             for nextReac in reactions:
                 if produit in nextReac.substrats:
                     reac.next.append(nextReac)
+                    nextReac.previous.append(reac)
 
 
 def findPaths(start, end, depth):
@@ -241,6 +242,52 @@ def exploreNext(reac, end, depth, path=[], paths=[]):
     return paths
 
 
+def findPathsV2(start, end, depth):
+    paths = []
+    for reacStart in reactions:
+        if start in reacStart.substrats:
+            for reacEnd in reactions:
+                if end in reacEnd.produits:
+                    paths += exploreNextV2(
+                        reacStart,
+                        reacEnd,
+                        depth,
+                        pathStart=[reacStart],
+                        pathEnd=[reacEnd],
+                    )
+    return paths
+
+
+def exploreNextV2(reacStart, reacEnd, depth, pathStart, pathEnd, paths=[]):
+    reacStart.used = True
+    reacEnd.used = True
+
+    for molecule in reacStart.produits:
+        for enzyme in inhibitions.get(molecule, []):
+            enzyme.inhibited = True
+
+    for molecule in reacEnd.substrats:
+        for enzyme in inhibitions.get(molecule, []):
+            enzyme.inhibited = True
+
+    add_reac = False
+    for produit in reacStart.produits:
+        if produit in reacEnd.substrats:
+            add_reac = True
+            paths.append(pathStart + pathEnd)
+
+    if not add_reac:
+        if depth > 1:
+            for next in reacStart.next:
+                if not next.used and not next.enzyme.inhibited:
+                    for previous in reacEnd.previous:
+                        if depth > 2:
+                            exploreNextV2(next, previous, depth - 2)
+                        else:
+                            exploreNextV2(reacStart, previous, depth - 1)
+    return paths
+
+
 # Main
 if __name__ == "__main__":
 
@@ -258,6 +305,6 @@ if __name__ == "__main__":
 
     print("Find path")
     s = time.time()
-    paths = findPaths(especes.get("NAD+"), especes.get("Acetophenone"), 2)
+    paths = findPaths(especes.get("NAD+"), especes.get("Acetophenone"), 3)
     print(len(set([item for items in paths for item in items])))
     print("execution time :", time.time() - s)

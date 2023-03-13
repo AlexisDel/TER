@@ -13,6 +13,7 @@ class Reaction:
         self.substrats = substrats
         self.produits = produits
         self.next = []
+        self.previous = []
         self.used = False
 
     def __str__(self):
