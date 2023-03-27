@@ -18,15 +18,7 @@ class Reaction:
 
     def __str__(self):
         return (
-            str(self.enzyme)
-            + " : "
-            + str(self.substrats)
-            + " -> "
-            + str(self.produits)
-            + "\nSuivants : \n   "
-            + str(self.next)
-            + "\nInhibited : \n   "
-            + str(self.inhibited_enzyms)
+            str(self.enzyme) + " : " + str(self.substrats) + " -> " + str(self.produits)
         )
 
     def __repr__(self):

@@ -226,18 +226,20 @@ def findPaths(start, end, depth):
 
 
 def exploreNext(reac, end, depth, path=[], paths=[]):
+
     reac.used = True
 
     for molecule in reac.produits:
         for enzyme in inhibitions.get(molecule, []):
             enzyme.inhibited = True
 
-    if end in reac.produits:
+    if depth == 1 and end in reac.produits:
         paths.append(path)
     else:
         for n in reac.next:
             if depth > 1 and not n.used and not n.enzyme.inhibited:
                 exploreNext(n, end, depth - 1, path + [n], paths)
+
     reac.used = False
     return paths
 
@@ -270,21 +272,42 @@ def exploreNextV2(reacStart, reacEnd, depth, pathStart, pathEnd, paths=[]):
         for enzyme in inhibitions.get(molecule, []):
             enzyme.inhibited = True
 
-    add_reac = False
     for produit in reacStart.produits:
         if produit in reacEnd.substrats:
-            add_reac = True
-            paths.append(pathStart + pathEnd)
+            paths.append(pathStart + pathEnd[::-1])
 
-    if not add_reac:
-        if depth > 1:
-            for next in reacStart.next:
-                if not next.used and not next.enzyme.inhibited:
-                    for previous in reacEnd.previous:
-                        if depth > 2:
-                            exploreNextV2(next, previous, depth - 2)
+    if depth > 2:
+        for next in reacStart.next:
+            if not next.used and not next.enzyme.inhibited:
+                for previous in reacEnd.previous:
+                    if not previous.used and not previous.enzyme.inhibited:
+                        if depth > 3:
+                            exploreNextV2(
+                                next,
+                                previous,
+                                depth - 2,
+                                pathStart + [next],
+                                pathEnd + [previous],
+                            )
                         else:
-                            exploreNextV2(reacStart, previous, depth - 1)
+                            exploreNextV2(
+                                reacStart,
+                                previous,
+                                depth - 1,
+                                pathStart,
+                                pathEnd + [previous],
+                            )
+
+    for molecule in reacStart.produits:
+        for enzyme in inhibitions.get(molecule, []):
+            enzyme.inhibited = False
+
+    for molecule in reacEnd.substrats:
+        for enzyme in inhibitions.get(molecule, []):
+            enzyme.inhibited = False
+
+    reacStart.used = False
+    reacEnd.used = False
     return paths
 
 
@@ -303,8 +326,16 @@ if __name__ == "__main__":
     buildNext()
     print("execution time :", time.time() - s)
 
-    print("Find path")
+    print("Find path V1")
     s = time.time()
-    paths = findPaths(especes.get("NAD+"), especes.get("Acetophenone"), 3)
-    print(len(set([item for items in paths for item in items])))
+    paths = findPaths(especes.get("aceton"), especes.get("H2O2"), 4)
+    result = set([item for sublist in paths for item in sublist])
+    print("paths :", len(result))
+    print("execution time :", time.time() - s)
+
+    print("Find path V2")
+    s = time.time()
+    paths = findPathsV2(especes.get("aceton"), especes.get("H2O2"), 4)
+    result = set([item for sublist in paths for item in sublist])
+    print("paths :", len(result))
     print("execution time :", time.time() - s)
