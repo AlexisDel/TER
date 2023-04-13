@@ -26,6 +26,18 @@ from utils import Espece, Reaction, Inhibition
 from collections import defaultdict
 import time
 
+import sys
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QTextEdit,
+)
+from functools import partial
+
 # HashMap
 especes = dict()
 reactions = []
@@ -311,6 +323,104 @@ def exploreNextV2(reacStart, reacEnd, depth, pathStart, pathEnd, paths=[]):
     return paths
 
 
+def findPaths_GUI(substrate, product, depth):
+    try:
+        paths = findPathsV2(especes.get(substrate), especes.get(product), int(depth))
+
+        path_output = ""
+        for path in paths:
+            path_output += str(path) + "\n"
+
+        return path_output
+    except:
+        return ""
+
+
+class App(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.title = "Find Path"
+        self.left = 10
+        self.top = 10
+        self.width = 400
+        self.height = 400
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
+        # create labels
+        substrate_label = QLabel("Substrate:", self)
+        substrate_label.move(20, 20)
+        product_label = QLabel("Product:", self)
+        product_label.move(20, 50)
+        # create labels for path length specification
+        path_length_label = QLabel("Path Length:", self)
+        path_length_label.move(20, 80)
+
+        # create input boxes
+        self.substrate_input = QLineEdit(self)
+        self.substrate_input.move(100, 20)
+        self.product_input = QLineEdit(self)
+        self.product_input.move(100, 50)
+        self.path_length_input = QLineEdit(self)
+        self.path_length_input.move(100, 80)
+
+        # create button
+        button = QPushButton("Find Path", self)
+        button.setToolTip(
+            "Click to find the path between the substrate and the product"
+        )
+        button.move(100, 120)
+        button.clicked.connect(partial(self.display_path))
+
+        # create output textbox
+        path_label = QLabel("Paths:", self)
+        path_label.move(20, 140)
+        self.output_textbox = QTextEdit(self)
+        self.output_textbox.setReadOnly(True)
+        self.output_textbox.setGeometry(20, 150, 360, 80)  # reduce height
+
+        # create label for path length input
+        path_length_input_label = QLabel("Path Length:", self)
+        path_length_input_label.move(20, 240)
+
+        # create input box for path length output
+        self.path_length_output_label = QLabel("Path Length:", self)
+        self.path_length_output_label.move(20, 280)
+        self.path_length_output_input = QLineEdit(self)
+        self.path_length_output_input.setReadOnly(True)
+        self.path_length_output_input.setGeometry(100, 280, 280, 20)
+
+        # set layout
+        layout = QVBoxLayout(self)
+        layout.addWidget(substrate_label)
+        layout.addWidget(self.substrate_input)
+        layout.addWidget(product_label)
+        layout.addWidget(self.product_input)
+        layout.addWidget(path_length_label)
+        layout.addWidget(self.path_length_input)
+        layout.addWidget(button)
+        layout.addWidget(path_label)
+        layout.addWidget(self.output_textbox)
+        layout.addWidget(path_length_input_label)
+        layout.addWidget(self.path_length_output_label)
+        layout.addWidget(self.path_length_output_input)
+        self.setLayout(layout)
+
+    def display_path(self):
+        substrate = self.substrate_input.text()
+        product = self.product_input.text()
+        path_depth = self.path_length_input.text()
+        path_output = findPaths_GUI(substrate, product, path_depth)
+        self.output_textbox.setText(path_output)
+        self.output_textbox.setText(
+            "The length of the path is "
+            + str(len(set([item for sublist in path_output for item in sublist])))
+        )
+
+
 # Main
 if __name__ == "__main__":
 
@@ -326,16 +436,15 @@ if __name__ == "__main__":
     buildNext()
     print("execution time :", time.time() - s)
 
-    print("Find path V1")
-    s = time.time()
-    paths = findPaths(especes.get("aceton"), especes.get("H2O2"), 4)
-    result = set([item for sublist in paths for item in sublist])
-    print("paths :", len(result))
-    print("execution time :", time.time() - s)
+    # create the QGuiApplication instance
+    app = QApplication(sys.argv)
 
-    print("Find path V2")
-    s = time.time()
-    paths = findPathsV2(especes.get("aceton"), especes.get("H2O2"), 4)
-    result = set([item for sublist in paths for item in sublist])
-    print("paths :", len(result))
-    print("execution time :", time.time() - s)
+    # create and show the main window
+    window = App()
+    window.show()
+
+    # access the font of the QGuiApplication instance
+    font = app.font()
+
+    # start the event loop
+    sys.exit(app.exec_())
