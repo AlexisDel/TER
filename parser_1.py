@@ -80,6 +80,8 @@ t_UM = r"uM"
 def t_NUMBER(t):
     r"[0-9]+\.?[0-9]*e?[\-\+]?[0-9]*"
     t.value = float(t.value)
+    if t.value == int(t.value):
+        t.value = int(t.value)
     return t
 
 
@@ -127,7 +129,7 @@ def p_react(p):
     """
     react : IDENT COLON listm RARROW listm BAR listconc DASH NUMBER SEMI
     """
-    reactions.append(Reaction(p[1], p[3], p[5]))
+    reactions.append(Reaction(p[1], p[3], p[5], p[7], p[9]))
 
 
 def p_inhibition(p):
@@ -155,26 +157,28 @@ def p_listconc(p):
     """
     listconc : NUMBER unite
     """
-    p[0] = [p[1]]
+    p[0] = [str(p[1]) + " " + p[2]]
 
 
 def p_listconc_list(p):
     """
     listconc : NUMBER unite COMMA listconc
     """
-    p[0] = p[4] + [p[1]]
+    p[0] = p[4] + [str(p[1]) + " " + p[2]]
 
 
 def p_unite_MM(p):
     """
     unite : MM
     """
+    p[0] = "mM"
 
 
 def p_unite_UM(p):
     """
     unite : UM
     """
+    p[0] = "uM"
 
 
 def p_error(p):
@@ -323,19 +327,6 @@ def exploreNextV2(reacStart, reacEnd, depth, pathStart, pathEnd, paths=[]):
     return paths
 
 
-def findPaths_GUI(substrate, product, depth):
-    try:
-        paths = findPathsV2(especes.get(substrate), especes.get(product), int(depth))
-
-        path_output = ""
-        for path in paths:
-            path_output += str(path) + "\n"
-
-        return path_output
-    except:
-        return ""
-
-
 class App(QWidget):
     def __init__(self):
         super().__init__()
@@ -376,22 +367,19 @@ class App(QWidget):
         button.clicked.connect(partial(self.display_path))
 
         # create output textbox
-        path_label = QLabel("Paths:", self)
+        path_label = QLabel("Reactions:", self)
         path_label.move(20, 140)
         self.output_textbox = QTextEdit(self)
         self.output_textbox.setReadOnly(True)
         self.output_textbox.setGeometry(20, 150, 360, 80)  # reduce height
 
-        # create label for path length input
-        path_length_input_label = QLabel("Path Length:", self)
-        path_length_input_label.move(20, 240)
+        # create input box for path length output
+        self.number_reactions = QLabel("Number of reactions:", self)
+        self.number_reactions.move(20, 280)
 
         # create input box for path length output
-        self.path_length_output_label = QLabel("Path Length:", self)
-        self.path_length_output_label.move(20, 280)
-        self.path_length_output_input = QLineEdit(self)
-        self.path_length_output_input.setReadOnly(True)
-        self.path_length_output_input.setGeometry(100, 280, 280, 20)
+        self.execution_time = QLabel("Execution time:", self)
+        self.execution_time.move(20, 280)
 
         # set layout
         layout = QVBoxLayout(self)
@@ -404,21 +392,47 @@ class App(QWidget):
         layout.addWidget(button)
         layout.addWidget(path_label)
         layout.addWidget(self.output_textbox)
-        layout.addWidget(path_length_input_label)
-        layout.addWidget(self.path_length_output_label)
-        layout.addWidget(self.path_length_output_input)
+        layout.addWidget(self.number_reactions)
+        layout.addWidget(self.execution_time)
         self.setLayout(layout)
 
     def display_path(self):
         substrate = self.substrate_input.text()
+        if substrate == "":
+            self.output_textbox.setText("Please input a substrate")
+            return
+
         product = self.product_input.text()
+        if product == "":
+            self.output_textbox.setText("Please input a product")
+            return
+
         path_depth = self.path_length_input.text()
-        path_output = findPaths_GUI(substrate, product, path_depth)
-        self.output_textbox.setText(path_output)
-        self.output_textbox.setText(
-            "The length of the path is "
-            + str(len(set([item for sublist in path_output for item in sublist])))
-        )
+        if path_depth == "":
+            self.output_textbox.setText("Please input a maximum depth")
+            return
+
+        try:
+            path_depth = int(path_depth)
+        except:
+            self.output_textbox.setText("Please input a integer value for the depth")
+            return
+
+        s = time.time()
+        paths = findPathsV2(especes.get(substrate), especes.get(product), path_depth)
+        e = time.time()
+        reactions = set([item for sublist in paths for item in sublist])
+        reactions_string = "\n".join(map(str, reactions))
+        self.output_textbox.setText(reactions_string)
+        self.number_reactions.setText("Number of reactions: " + str(len(reactions)))
+        self.execution_time.setText("Execution time: " + "{:.4f}".format(e - s) + "s")
+
+        # Write results in a file
+        filename = "d" + str(path_depth) + "-" + substrate + "-" + product + ".ssa"
+        f = open(filename, "w")
+        f.write("// Reactions\n\n")
+        f.write(reactions_string)
+        f.close()
 
 
 # Main
@@ -428,13 +442,7 @@ if __name__ == "__main__":
     with open("brenda.ssa", "r") as file:
         test_yacc(file.read())
 
-    print(len(reactions))
-    print(len(inhibitions))
-
-    print("Build next")
-    s = time.time()
     buildNext()
-    print("execution time :", time.time() - s)
 
     # create the QGuiApplication instance
     app = QApplication(sys.argv)

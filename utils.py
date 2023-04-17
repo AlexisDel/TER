@@ -3,27 +3,33 @@ class Espece:
         self.name = name
         self.inhibited = False
 
-    def __repr__(self):
-        return self.name
+    def __str__(self):
+        return '"' + self.name + '"'
 
 
 class Reaction:
-    def __init__(self, enzyme, substrats, produits):
+    def __init__(self, enzyme, substrats, produits, concentrations, quantity):
         self.enzyme = enzyme
         self.substrats = substrats
         self.produits = produits
+        self.concentrations = concentrations
+        self.quantity = quantity
         self.next = []
         self.previous = []
         self.used = False
 
     def __str__(self):
         return (
-            str(self.enzyme) + " : " + str(self.substrats) + " -> " + str(self.produits)
-        )
-
-    def __repr__(self):
-        return (
-            str(self.enzyme) + " : " + str(self.substrats) + " -> " + str(self.produits)
+            str(self.enzyme)
+            + " : "
+            + " + ".join(map(str, reversed(self.substrats)))
+            + " -> "
+            + " + ".join(map(str, reversed(self.produits)))
+            + " | "
+            + ", ".join(map(str, reversed(self.concentrations)))
+            + " - "
+            + str(self.quantity)
+            + ";"
         )
 
 
