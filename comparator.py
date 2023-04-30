@@ -1,8 +1,3 @@
-filename = "d4-lactose-H2O2"
-file1 = filename + ".ssa"
-file2 = filename + "_patrick.ssa"
-
-
 def count_matching_lines(file1, file2):
     with open(file1, "r") as f1, open(file2, "r") as f2:
         # Skip the first two lines of each file
