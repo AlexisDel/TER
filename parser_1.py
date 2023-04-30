@@ -233,33 +233,6 @@ def buildNext():
                     nextReac.previous.append(reac)
 
 
-def findPaths(start, end, depth):
-    paths = []
-    for reac in reactions:
-        if start in reac.substrats:
-            paths += exploreNext(reac, end, depth, path=[reac])
-    return paths
-
-
-def exploreNext(reac, end, depth, path=[], paths=[]):
-
-    reac.used = True
-
-    for molecule in reac.produits:
-        for enzyme in inhibitions.get(molecule, []):
-            enzyme.inhibited = True
-
-    if depth == 1 and end in reac.produits:
-        paths.append(path)
-    else:
-        for n in reac.next:
-            if depth > 1 and not n.used and not n.enzyme.inhibited:
-                exploreNext(n, end, depth - 1, path + [n], paths)
-
-    reac.used = False
-    return paths
-
-
 def findPathsV2(start, end, depth):
     paths = []
     for reacStart in reactions:
@@ -276,7 +249,9 @@ def findPathsV2(start, end, depth):
     return paths
 
 
-def exploreNextV2(reacStart, reacEnd, depth, pathStart, pathEnd, paths=[]):
+def exploreNextV2(reacStart, reacEnd, depth, pathStart, pathEnd, paths=None):
+    if paths is None:
+        paths = []
     reacStart.used = True
     reacEnd.used = True
 
@@ -304,6 +279,7 @@ def exploreNextV2(reacStart, reacEnd, depth, pathStart, pathEnd, paths=[]):
                                 depth - 2,
                                 pathStart + [next],
                                 pathEnd + [previous],
+                                paths=paths
                             )
                         else:
                             exploreNextV2(
@@ -312,6 +288,7 @@ def exploreNextV2(reacStart, reacEnd, depth, pathStart, pathEnd, paths=[]):
                                 depth - 1,
                                 pathStart,
                                 pathEnd + [previous],
+                                paths=paths
                             )
 
     for molecule in reacStart.produits:
@@ -359,7 +336,7 @@ class App(QWidget):
         self.path_length_input.move(100, 80)
 
         # create button
-        button = QPushButton("Find Path", self)
+        button = QPushButton("Find Reactions", self)
         button.setToolTip(
             "Click to find the path between the substrate and the product"
         )
@@ -415,20 +392,26 @@ class App(QWidget):
         try:
             path_depth = int(path_depth)
         except:
-            self.output_textbox.setText("Please input a integer value for the depth")
+            self.output_textbox.setText(
+                "Please input a integer value for the depth")
             return
 
         s = time.time()
-        paths = findPathsV2(especes.get(substrate), especes.get(product), path_depth)
+        paths = findPathsV2(especes.get(substrate),
+                            especes.get(product), path_depth)
         e = time.time()
+        print(len(paths))
         reactions = set([item for sublist in paths for item in sublist])
         reactions_string = "\n".join(map(str, reactions))
         self.output_textbox.setText(reactions_string)
-        self.number_reactions.setText("Number of reactions: " + str(len(reactions)))
-        self.execution_time.setText("Execution time: " + "{:.4f}".format(e - s) + "s")
+        self.number_reactions.setText(
+            "Number of reactions: " + str(len(reactions)))
+        self.execution_time.setText(
+            "Execution time: " + "{:.4f}".format(e - s) + "s")
 
         # Write results in a file
-        filename = "d" + str(path_depth) + "-" + substrate + "-" + product + ".ssa"
+        filename = "d" + str(path_depth) + "-" + \
+            substrate + "-" + product + ".ssa"
         f = open(filename, "w")
         f.write("// Reactions\n\n")
         f.write(reactions_string)
