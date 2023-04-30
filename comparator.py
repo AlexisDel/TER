@@ -7,7 +7,7 @@ def count_matching_lines(file1, file2):
 
         # Store the remaining lines in sets
         lines_f1 = set(line.strip() for line in f1)
-        lines_f2 = set(line.strip() for line in f2)
+        lines_f2 = set(line.split("	")[0].strip() for line in f2)
 
     # Calculate the intersection of the sets
     matching_lines = lines_f1.intersection(lines_f2)
